@@ -481,6 +481,13 @@
         <option value="sequential">En orden</option>
       </select>
     </div>
+    <div style="background:#fff7e6; border-radius:12px; padding:10px 16px; margin:12px 0; text-align:left;">
+      <label style="font-size:14px; color:#6b4a00; font-weight:600; display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="scrambleExtraLetter">
+        ➕ Agregar una letra de más (más difícil)
+      </label>
+      <p style="font-size:12px; color:#8a5a00; margin:6px 0 0;">Aparece una letra extra que se confunde con la palabra (por ejemplo una "b" de más si la palabra lleva "v"). Hay que descartarla y armar solo la palabra correcta.</p>
+    </div>
     <div class="actions">
       <button class="main check-btn" onclick="startScrambleGame()">Comenzar</button>
     </div>
@@ -1231,9 +1238,22 @@ let isScrambleRetry = false;
 let scrambleTiles = [];   // [{char, id}]
 let scramblePlaced = [];  // array of ids, in placed order
 let scrambleLocked = false;
+let scrambleExtraLetterEnabled = false;
+
+// Toma la letra "trampa" de la primera pista (blanks) de la palabra: la
+// letra real en esa posición es la correcta, y la otra opción confusable
+// (v/b, s/z/c, etc.) es la que se agrega de más como señuelo.
+function pickDecoyLetter(wordObj) {
+  if (!wordObj.blanks || wordObj.blanks.length === 0) return null;
+  const blank = wordObj.blanks[0];
+  const correctLetter = wordObj.word[blank.pos];
+  const decoy = blank.options.find(o => o !== correctLetter);
+  return decoy || null;
+}
 
 function startScrambleGame() {
   const scrambleOrderVal = document.getElementById('scrambleOrder').value;
+  scrambleExtraLetterEnabled = document.getElementById('scrambleExtraLetter').checked;
   scrambleQueue = scrambleOrderVal === 'random' ? shuffle(activeWords()) : [...activeWords()];
   scrambleIndex = 0;
   scrambleCorrectCount = 0;
@@ -1248,6 +1268,10 @@ function startScrambleGame() {
 function loadScrambleWord() {
   const current = scrambleQueue[scrambleIndex];
   const chars = [...current.word];
+  if (scrambleExtraLetterEnabled) {
+    const decoy = pickDecoyLetter(current);
+    if (decoy) chars.push(decoy);
+  }
   let order;
   do {
     order = shuffle(chars.map((_, i) => i));
@@ -1309,7 +1333,7 @@ function checkScramble() {
   const current = scrambleQueue[scrambleIndex];
   const feedback = document.getElementById('scrambleFeedback');
 
-  if (scramblePlaced.length < scrambleTiles.length) {
+  if (scramblePlaced.length < current.word.length) {
     feedback.textContent = 'Coloca todas las letras primero.';
     feedback.className = 'feedback';
     return;
