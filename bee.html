@@ -3,6 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<script>
+  // Evita que el navegador (o el de la tablet) sirva una versión vieja en
+  // caché cuando actualizamos este archivo en el servidor. Cada carga se
+  // pide con un parámetro distinto en la URL, así el navegador siempre la
+  // trata como "nueva" y descarga la versión fresca en vez de la guardada.
+  (function () {
+    if (location.search.indexOf('_cb=') === -1) {
+      var sep = location.search ? '&' : '?';
+      location.replace(location.pathname + location.search + sep + '_cb=' + Date.now() + location.hash);
+    }
+  })();
+</script>
 <title>Spelling Bee</title>
 <style>
   * { box-sizing: border-box; }
