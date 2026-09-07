@@ -151,6 +151,8 @@
     border: 1.5px solid #bbb;
     color: #777;
   }
+  .repaso-btn { background: #6c5ce7; }
+  .repaso-btn:hover { background: #5a4bd1; }
   .feedback {
     margin-top: 16px;
     font-size: 16px;
@@ -278,10 +280,27 @@
   .fill-opt-btn:hover:not(:disabled) { border-color: #e76f51; }
   .fill-opt-btn.selected { background: #ffe9c2; border-color: #d4820a; }
   .fill-opt-btn:disabled { cursor: default; }
+  #homeBtn, #backBtn {
+    margin-bottom: 10px;
+    background: #fff;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #homeBtn { display: inline-block; border: 2px solid #f0c674; color: #6b4a00; margin-right: 8px; }
+  #homeBtn:hover { background: #fff7e6; }
+  #backBtn { display: none; border: 2px solid #e76f51; color: #d95f3f; }
+  #backBtn:hover { background: #fff0eb; }
 </style>
 </head>
 <body>
 <div class="card">
+  <div style="text-align:left;">
+    <button id="homeBtn" onclick="goHome()">🏠 Inicio</button>
+    <button id="backBtn" onclick="goBack()">⬅ Atrás</button>
+  </div>
   <h1>Spelling Bee 🐝</h1>
   <div class="subtitle" id="subtitleText">Elige un idioma para empezar</div>
 
@@ -291,6 +310,33 @@
     <div class="actions stacked">
       <button class="main check-btn" onclick="selectLanguage('es')">🇪🇸 Español (20 palabras)</button>
       <button class="main menu-btn" onclick="selectLanguage('en')">🇬🇧 English (20 words)</button>
+    </div>
+
+    <div style="margin: 22px 0 14px; border-top: 2px dashed #f0d9a0;"></div>
+    <p style="color:#6b4a00; font-size:15px; font-weight:600;">¿Quieres repasar palabras de spelling bees anteriores?</p>
+    <div class="actions stacked">
+      <button class="main repaso-btn" onclick="showRepasoLangSelect()">📚 Repasar anteriores</button>
+    </div>
+  </div>
+
+  <!-- REPASO: elegir idioma -->
+  <div id="repasoLangSelect" style="display:none;">
+    <p style="color:#6b4a00; font-size:14px;">¿En qué idioma quieres repasar?</p>
+    <div class="actions stacked">
+      <button class="main check-btn" onclick="selectRepasoLang('es')">🇪🇸 Español</button>
+      <button class="main menu-btn" onclick="selectRepasoLang('en')">🇬🇧 English</button>
+    </div>
+    <div class="actions" style="margin-top:14px;">
+      <button class="main ghost-btn" onclick="showLangSelect()">← Volver</button>
+    </div>
+  </div>
+
+  <!-- REPASO: elegir pool de palabras pasadas -->
+  <div id="repasoPoolSelect" style="display:none;">
+    <p style="color:#6b4a00; font-size:14px;">¿Qué lista de palabras pasadas quieres repasar?</p>
+    <div class="actions stacked" id="repasoPoolList"></div>
+    <div class="actions" style="margin-top:14px;">
+      <button class="main ghost-btn" onclick="showRepasoLangSelect()">← Volver</button>
     </div>
   </div>
 
@@ -308,9 +354,6 @@
       <button class="main menu-btn" onclick="goToMode('choice')">🔤 Elige la palabra correcta</button>
       <button class="main menu-btn2" onclick="goToMode('scramble')">🧩 Ordena las letras</button>
       <button class="main menu-btn3" onclick="goToMode('fill')">✏️ Completa la palabra</button>
-    </div>
-    <div class="actions" style="margin-top:14px;">
-      <button class="main ghost-btn" onclick="showLangSelect()">🔄 Cambiar idioma</button>
     </div>
   </div>
 
@@ -435,7 +478,7 @@
   <div id="scrambleGame" style="display:none;">
     <div class="progress-bar"><div class="progress-fill" id="scrambleProgressFill"></div></div>
     <div class="score" id="scrambleScoreLine">Palabra 1 de 20 · Aciertos: 0</div>
-    <button class="listen-btn-small" onclick="playWord(scrambleQueue[scrambleIndex].word, false)">🔊 Escuchar palabra</button>
+    <button class="listen-btn-small" onclick="speakRaw(scrambleQueue[scrambleIndex].word, false)">🔊 Escuchar palabra</button>
     <div class="tile-row answer-row" id="scrambleAnswerRow"></div>
     <div class="tile-row available-row" id="scrambleAvailableRow"></div>
     <div class="actions">
@@ -483,7 +526,7 @@
   <div id="fillGame" style="display:none;">
     <div class="progress-bar"><div class="progress-fill" id="fillProgressFill"></div></div>
     <div class="score" id="fillScoreLine">Palabra 1 de 20 · Aciertos: 0</div>
-    <button class="listen-btn-small" onclick="playWord(fillQueue[fillIndex].word, false)">🔊 Escuchar palabra</button>
+    <button class="listen-btn-small" onclick="speakRaw(fillQueue[fillIndex].word, false)">🔊 Escuchar palabra</button>
     <div class="fill-word-display" id="fillWordDisplay"></div>
     <div id="fillOptions"></div>
     <div class="actions">
@@ -516,46 +559,46 @@
 // algún otro par de letras que se confunden al oído), nunca dónde va la tilde.
 const WORD_BANKS = {
   es: [
-  { word: "caso", sentence: "En este ___, tienes razón.", distractors: ["cazo", "casso"],
-    blanks: [{ pos: 2, options: ["s", "z", "c"] }] },
-  { word: "xilografía", sentence: "La ___ es una técnica de grabado en madera.", distractors: ["silografía", "xylografía"],
-    blanks: [{ pos: 0, options: ["x", "s"] }] },
-  { word: "zócalo", sentence: "Pintaron el ___ de la pared de color blanco.", distractors: ["sócalo", "zóccalo"],
-    blanks: [{ pos: 0, options: ["z", "s"] }] },
-  { word: "segundo", sentence: "Espera un ___, ya casi termino.", distractors: ["cegundo", "zegundo"],
-    blanks: [{ pos: 0, options: ["s", "c", "z"] }, { pos: 2, options: ["g", "j"] }] },
-  { word: "cerdo", sentence: "El granjero tiene un ___ en el corral.", distractors: ["serdo", "zerdo"],
-    blanks: [{ pos: 0, options: ["c", "s", "z"] }] },
-  { word: "zanja", sentence: "Cavaron una ___ para el tubo de agua.", distractors: ["sanja", "zamja"],
-    blanks: [{ pos: 0, options: ["z", "s"] }] },
+  { word: "beber", sentence: "Es importante ___ suficiente agua cada día.", distractors: ["veber", "bebber"],
+    blanks: [{ pos: 0, options: ["b", "v"] }, { pos: 2, options: ["b", "v"] }] },
+  { word: "batear", sentence: "Le tocó ___ primero en el partido de béisbol.", distractors: ["vatear", "batiar"],
+    blanks: [{ pos: 0, options: ["b", "v"] }] },
+  { word: "buzón", sentence: "Metió la carta en el ___ de la esquina.", distractors: ["vuzón", "buzzón"],
+    blanks: [{ pos: 0, options: ["b", "v"] }] },
+  { word: "nueve", sentence: "Cumplió ___ años la semana pasada.", distractors: ["nuebe", "nuevve"],
+    blanks: [{ pos: 3, options: ["v", "b"] }] },
+  { word: "previo", sentence: "Hicimos un repaso ___ antes del examen final.", distractors: ["prebio", "previio"],
+    blanks: [{ pos: 3, options: ["v", "b"] }] },
+  { word: "invierno", sentence: "En ___ suele nevar mucho en las montañas.", distractors: ["imbierno", "invierrno"],
+    blanks: [{ pos: 2, options: ["v", "b"] }] },
+  { word: "rebotar", sentence: "La pelota volvió a ___ contra la pared.", distractors: ["revotar", "rebottar"],
+    blanks: [{ pos: 2, options: ["b", "v"] }] },
+  { word: "votar", sentence: "Todos los ciudadanos mayores de edad pueden ___.", distractors: ["botar", "vottar"],
+    blanks: [{ pos: 0, options: ["v", "b"] }] },
+  { word: "abeja", sentence: "La ___ volaba de flor en flor buscando polen.", distractors: ["aveja", "abbeja"],
+    blanks: [{ pos: 1, options: ["b", "v"] }] },
+  { word: "vaca", sentence: "La ___ del establo da leche fresca cada mañana.", distractors: ["baca", "vacca"],
+    blanks: [{ pos: 0, options: ["v", "b"] }] },
+  { word: "gaviota", sentence: "Una ___ volaba muy cerca del mar.", distractors: ["gabiota", "gaviotta"],
+    blanks: [{ pos: 2, options: ["v", "b"] }] },
+  { word: "cabeza", sentence: "Le dolía la ___ después de estudiar tanto.", distractors: ["caveza", "cabbeza"],
+    blanks: [{ pos: 2, options: ["b", "v"] }] },
+  { word: "oveja", sentence: "La ___ tiene una lana suave y blanca.", distractors: ["obeja", "ovveja"],
+    blanks: [{ pos: 1, options: ["v", "b"] }] },
+  { word: "nieve", sentence: "Los niños jugaron felices con la ___ del jardín.", distractors: ["niebe", "nievve"],
+    blanks: [{ pos: 3, options: ["v", "b"] }] },
+  { word: "bombero", sentence: "El ___ apagó el incendio en pocos minutos.", distractors: ["vombero", "bomvero"],
+    blanks: [{ pos: 0, options: ["b", "v"] }, { pos: 3, options: ["b", "v"] }] },
   { word: "ciudad", sentence: "Vivimos en una ___ muy grande.", distractors: ["siudad", "cuidad"],
     blanks: [{ pos: 1, options: ["i", "u"] }, { pos: 2, options: ["u", "i"] }] },
-  { word: "sartén", sentence: "Frió los huevos en una ___ nueva.", distractors: ["zartén", "sartem"],
-    blanks: [{ pos: 0, options: ["s", "z"] }] },
-  { word: "zafiro", sentence: "El anillo tenía un ___ azul brillante.", distractors: ["safiro", "zafyro"],
-    blanks: [{ pos: 0, options: ["z", "s"] }, { pos: 3, options: ["i", "y"] }] },
-  { word: "seto", sentence: "El jardinero podó el ___ del jardín.", distractors: ["ceto", "zeto"],
-    blanks: [{ pos: 0, options: ["s", "c", "z"] }] },
-  { word: "pesar", sentence: "A ___ de la lluvia, fuimos al parque.", distractors: ["pezar", "pessar"],
-    blanks: [{ pos: 2, options: ["s", "z", "c"] }] },
-  { word: "traducir", sentence: "Necesito ___ este texto al inglés.", distractors: ["tradusir", "traduzir"],
-    blanks: [{ pos: 5, options: ["c", "s", "z"] }] },
-  { word: "xilófono", sentence: "Tocó una melodía alegre en el ___.", distractors: ["silófono", "xilóphono"],
-    blanks: [{ pos: 0, options: ["x", "s"] }] },
-  { word: "xerófilo", sentence: "El cactus es una planta ___a.", distractors: ["serófilo", "xerophilo"],
-    blanks: [{ pos: 0, options: ["x", "s"] }] },
-  { word: "mascota", sentence: "Mi ___ favorita es mi perro.", distractors: ["macota", "mazcota"],
-    blanks: [{ pos: 2, options: ["s", "z"] }] },
-  { word: "empezar", sentence: "Vamos a ___ la tarea ahora mismo.", distractors: ["empesar", "enpezar"],
-    blanks: [{ pos: 1, options: ["m", "n"] }, { pos: 4, options: ["z", "s", "c"] }] },
-  { word: "diez", sentence: "Tengo ___ años.", distractors: ["dies", "diex"],
-    blanks: [{ pos: 3, options: ["z", "s"] }] },
-  { word: "cerebro", sentence: "El ___ controla todo el cuerpo.", distractors: ["serebro", "cerevro"],
-    blanks: [{ pos: 0, options: ["c", "s", "z"] }, { pos: 4, options: ["b", "v"] }] },
-  { word: "país", sentence: "México es un ___ muy grande.", distractors: ["paíz", "paíc"],
-    blanks: [{ pos: 3, options: ["s", "z"] }] },
-  { word: "bostezar", sentence: "El niño empezó a ___ de sueño.", distractors: ["bostesar", "vostezar"],
-    blanks: [{ pos: 0, options: ["b", "v"] }, { pos: 5, options: ["z", "s", "c"] }] }
+  { word: "adverbio", sentence: "'Rápidamente' es un ___ que describe cómo se hace algo.", distractors: ["adberbio", "advervio"],
+    blanks: [{ pos: 2, options: ["v", "b"] }, { pos: 5, options: ["b", "v"] }] },
+  { word: "resolver", sentence: "Debemos ___ este problema antes de la tarde.", distractors: ["resolber", "resolveer"],
+    blanks: [{ pos: 5, options: ["v", "b"] }] },
+  { word: "zócalo", sentence: "Pintaron el ___ de la pared de color blanco.", distractors: ["sócalo", "zóccalo"],
+    blanks: [{ pos: 0, options: ["z", "s"] }] },
+  { word: "seto", sentence: "El jardinero podó el ___ frente a la casa.", distractors: ["ceto", "zeto"],
+    blanks: [{ pos: 0, options: ["s", "c", "z"] }] }
   ],
   en: [
     { word: "step", sentence: "She took one ___ forward.", distractors: ["steb", "stap"],
@@ -601,14 +644,72 @@ const WORD_BANKS = {
   ]
 };
 
+// Cada vez que se reemplaza la lista activa de un idioma, la lista vieja se
+// archiva aquí como un "pool" más de repaso — así se van acumulando todas
+// las listas de spelling bee pasadas, sin perder ninguna.
+const REPASO_POOLS = {
+  es: [
+    { label: "Palabras con S, C, Z, X", words: [
+      { word: "cazo", sentence: "Mi abuela cocina la sopa en un ___ de metal.", distractors: ["caso", "casso"],
+        blanks: [{ pos: 2, options: ["s", "z", "c"] }] },
+      { word: "xilografía", sentence: "La ___ es una técnica de grabado en madera.", distractors: ["silografía", "xylografía"],
+        blanks: [{ pos: 0, options: ["x", "s"] }] },
+      { word: "zócalo", sentence: "Pintaron el ___ de la pared de color blanco.", distractors: ["sócalo", "zóccalo"],
+        blanks: [{ pos: 0, options: ["z", "s"] }] },
+      { word: "segundo", sentence: "Espera un ___, ya casi termino.", distractors: ["cegundo", "zegundo"],
+        blanks: [{ pos: 0, options: ["s", "c", "z"] }, { pos: 2, options: ["g", "j"] }] },
+      { word: "cerdo", sentence: "El granjero tiene un ___ en el corral.", distractors: ["serdo", "zerdo"],
+        blanks: [{ pos: 0, options: ["c", "s", "z"] }] },
+      { word: "zanja", sentence: "Cavaron una ___ para el tubo de agua.", distractors: ["sanja", "zamja"],
+        blanks: [{ pos: 0, options: ["z", "s"] }] },
+      { word: "ciudad", sentence: "Vivimos en una ___ muy grande.", distractors: ["siudad", "cuidad"],
+        blanks: [{ pos: 1, options: ["i", "u"] }, { pos: 2, options: ["u", "i"] }] },
+      { word: "sartén", sentence: "Frió los huevos en una ___ nueva.", distractors: ["zartén", "sartem"],
+        blanks: [{ pos: 0, options: ["s", "z"] }] },
+      { word: "zafiro", sentence: "El anillo tenía un ___ azul brillante.", distractors: ["safiro", "zafyro"],
+        blanks: [{ pos: 0, options: ["z", "s"] }, { pos: 3, options: ["i", "y"] }] },
+      { word: "seto", sentence: "El jardinero podó el ___ del jardín.", distractors: ["ceto", "zeto"],
+        blanks: [{ pos: 0, options: ["s", "c", "z"] }] },
+      { word: "pesar", sentence: "A ___ de la lluvia, fuimos al parque.", distractors: ["pezar", "pessar"],
+        blanks: [{ pos: 2, options: ["s", "z", "c"] }] },
+      { word: "traducir", sentence: "Necesito ___ este texto al inglés.", distractors: ["tradusir", "traduzir"],
+        blanks: [{ pos: 5, options: ["c", "s", "z"] }] },
+      { word: "xilófono", sentence: "Tocó una melodía alegre en el ___.", distractors: ["silófono", "xilóphono"],
+        blanks: [{ pos: 0, options: ["x", "s"] }] },
+      { word: "xerófilo", sentence: "El cactus es una planta ___a.", distractors: ["serófilo", "xerophilo"],
+        blanks: [{ pos: 0, options: ["x", "s"] }] },
+      { word: "mascota", sentence: "Mi ___ favorita es mi perro.", distractors: ["macota", "mazcota"],
+        blanks: [{ pos: 2, options: ["s", "z"] }] },
+      { word: "empezar", sentence: "Vamos a ___ la tarea ahora mismo.", distractors: ["empesar", "enpezar"],
+        blanks: [{ pos: 1, options: ["m", "n"] }, { pos: 4, options: ["z", "s", "c"] }] },
+      { word: "diez", sentence: "Tengo ___ años.", distractors: ["dies", "diex"],
+        blanks: [{ pos: 3, options: ["z", "s"] }] },
+      { word: "cerebro", sentence: "El ___ controla todo el cuerpo.", distractors: ["serebro", "cerevro"],
+        blanks: [{ pos: 0, options: ["c", "s", "z"] }, { pos: 4, options: ["b", "v"] }] },
+      { word: "país", sentence: "México es un ___ muy grande.", distractors: ["paíz", "paíc"],
+        blanks: [{ pos: 3, options: ["s", "z"] }] },
+      { word: "bostezar", sentence: "El niño empezó a ___ de sueño.", distractors: ["bostesar", "vostezar"],
+        blanks: [{ pos: 0, options: ["b", "v"] }, { pos: 5, options: ["z", "s", "c"] }] }
+    ] }
+  ],
+  en: []
+};
+
 let currentLang = 'es';
+let usingRepaso = false;
+let repasoPoolIndex = null; // índice dentro de REPASO_POOLS[currentLang]
+
 function activeWords() {
+  if (usingRepaso && repasoPoolIndex !== null) {
+    return REPASO_POOLS[currentLang][repasoPoolIndex].words;
+  }
   return WORD_BANKS[currentLang];
 }
 
 /* ---------- Navigation ---------- */
 function hideAllScreens() {
-  ['langSelect','menu','dictationSetup','dictationGame','dictationEnd',
+  ['langSelect','repasoLangSelect','repasoPoolSelect','menu',
+   'dictationSetup','dictationGame','dictationEnd',
    'choiceSetup','choiceGame','choiceEnd',
    'scrambleSetup','scrambleGame','scrambleEnd',
    'fillSetup','fillGame','fillEnd']
@@ -635,16 +736,75 @@ function showMenu() {
   clearAutoMenu();
   hideAllScreens();
   document.getElementById('menu').style.display = 'block';
+  document.getElementById('backBtn').style.display = 'none';
 }
 
 function showLangSelect() {
   clearAutoMenu();
+  usingRepaso = false;
+  repasoPoolIndex = null;
   hideAllScreens();
   document.getElementById('langSelect').style.display = 'block';
+  document.getElementById('backBtn').style.display = 'none';
+}
+
+// Botón global "🏠 Inicio", visible en cualquier pantalla de la app —
+// siempre regresa hasta el principio, sin importar en qué juego o
+// pantalla de configuración estés.
+function goHome() {
+  speechSynthesis.cancel();
+  showLangSelect();
+}
+
+// Botón global "⬅ Atrás", visible en cualquier pantalla — regresa al menú
+// de juegos del idioma (o pool de repaso) que se esté practicando ahora,
+// sin salir hasta la pantalla de elegir idioma.
+function goBack() {
+  speechSynthesis.cancel();
+  showMenu();
+}
+
+function showRepasoLangSelect() {
+  clearAutoMenu();
+  hideAllScreens();
+  document.getElementById('repasoLangSelect').style.display = 'block';
+  document.getElementById('backBtn').style.display = 'none';
+}
+
+function selectRepasoLang(lang) {
+  currentLang = lang;
+  showRepasoPoolSelect();
+}
+
+function showRepasoPoolSelect() {
+  clearAutoMenu();
+  hideAllScreens();
+  const pools = REPASO_POOLS[currentLang] || [];
+  const container = document.getElementById('repasoPoolList');
+  if (pools.length === 0) {
+    container.innerHTML = '<p style="color:#6b4a00; font-size:14px;">Todavía no hay palabras de repaso guardadas para este idioma.</p>';
+  } else {
+    container.innerHTML = pools.map((pool, i) =>
+      `<button class="main menu-btn" onclick="selectRepasoPool(${i})">${pool.label} (${pool.words.length} palabras)</button>`
+    ).join('');
+  }
+  document.getElementById('repasoPoolSelect').style.display = 'block';
+  document.getElementById('backBtn').style.display = 'none';
+}
+
+function selectRepasoPool(i) {
+  usingRepaso = true;
+  repasoPoolIndex = i;
+  const pool = REPASO_POOLS[currentLang][i];
+  document.getElementById('subtitleText').textContent = `Repasando: ${pool.label} — ${pool.words.length} palabras`;
+  populateVoiceSelect();
+  showMenu();
 }
 
 function selectLanguage(lang) {
   currentLang = lang;
+  usingRepaso = false;
+  repasoPoolIndex = null;
   const label = lang === 'es'
     ? `Practicando en español — ${activeWords().length} palabras`
     : `Practicando en inglés — ${activeWords().length} palabras`;
@@ -657,6 +817,10 @@ function goToMode(mode) {
   clearAutoMenu();
   hideAllScreens();
   document.getElementById(mode + 'Setup').style.display = 'block';
+  // "Atrás" solo debe verse dentro de un minijuego (Setup/Game/End) — esta
+  // es la única puerta de entrada a los 4 minijuegos, así que basta con
+  // mostrarlo aquí; las transiciones internas Setup<->Game<->End no lo tocan.
+  document.getElementById('backBtn').style.display = 'inline-block';
 }
 
 /* ---------- Shared helpers ---------- */
@@ -790,7 +954,7 @@ function pickVoice() {
 }
 
 function testVoice() {
-  speakRaw(currentLang === 'es' ? 'xilografía' : 'snack', false);
+  speakRaw(currentLang === 'es' ? 'gaviota' : 'snack', false);
 }
 
 function speakRaw(text, slow) {
@@ -808,26 +972,9 @@ function speakRaw(text, slow) {
   speechSynthesis.speak(utter);
 }
 
-function slugifyWord(word) {
-  return word.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-// Intenta reproducir una grabación propia (audio/{lang}/{palabra}.mp3, colocada junto
-// a este archivo por la herramienta recorder.html). Si no existe o falla, usa
-// automáticamente la voz del dispositivo como respaldo, así el juego siempre funciona.
-function playWord(word, slow) {
-  const path = `audio/${currentLang}/${slugifyWord(word)}.mp3`;
-  const audio = new Audio(path);
-  audio.playbackRate = slow ? 0.7 : 1;
-  let usedFallback = false;
-  const fallback = () => {
-    if (usedFallback) return;
-    usedFallback = true;
-    speakRaw(word, slow);
-  };
-  audio.addEventListener('error', fallback);
-  audio.play().catch(fallback);
-}
+// (Se probó grabar la voz del papá y convertirla a audio, pero no daba
+// buen resultado frente a la voz sintética del dispositivo, así que el
+// juego usa únicamente la voz sintética — es la que mejor funciona.)
 
 
 /* =========================================================
@@ -854,7 +1001,7 @@ function startGame() {
 
 function speakWord(slow) {
   const current = queue[currentIndex];
-  playWord(current.word, slow);
+  speakRaw(current.word, slow);
 }
 
 function loadCurrentWord() {
