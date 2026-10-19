@@ -668,56 +668,10 @@ let WORD_BANKS = {
   ]
 };
 
-// Cada vez que se reemplaza la lista activa de un idioma, la lista vieja se
-// archiva aquí como un "pool" más de repaso — así se van acumulando todas
-// las listas de spelling bee pasadas, sin perder ninguna.
-let REPASO_POOLS = {
-  es: [
-    { label: "Palabras con S, C, Z, X", words: [
-      { word: "cazo", sentence: "Mi abuela cocina la sopa en un ___ de metal.", distractors: ["caso", "casso"],
-        blanks: [{ pos: 2, options: ["s", "z", "c"] }] },
-      { word: "xilografía", sentence: "La ___ es una técnica de grabado en madera.", distractors: ["silografía", "xylografía"],
-        blanks: [{ pos: 0, options: ["x", "s"] }] },
-      { word: "zócalo", sentence: "Pintaron el ___ de la pared de color blanco.", distractors: ["sócalo", "zóccalo"],
-        blanks: [{ pos: 0, options: ["z", "s"] }] },
-      { word: "segundo", sentence: "Espera un ___, ya casi termino.", distractors: ["cegundo", "zegundo"],
-        blanks: [{ pos: 0, options: ["s", "c", "z"] }, { pos: 2, options: ["g", "j"] }] },
-      { word: "cerdo", sentence: "El granjero tiene un ___ en el corral.", distractors: ["serdo", "zerdo"],
-        blanks: [{ pos: 0, options: ["c", "s", "z"] }] },
-      { word: "zanja", sentence: "Cavaron una ___ para el tubo de agua.", distractors: ["sanja", "zamja"],
-        blanks: [{ pos: 0, options: ["z", "s"] }] },
-      { word: "ciudad", sentence: "Vivimos en una ___ muy grande.", distractors: ["siudad", "cuidad"],
-        blanks: [{ pos: 1, options: ["i", "u"] }, { pos: 2, options: ["u", "i"] }] },
-      { word: "sartén", sentence: "Frió los huevos en una ___ nueva.", distractors: ["zartén", "sartem"],
-        blanks: [{ pos: 0, options: ["s", "z"] }] },
-      { word: "zafiro", sentence: "El anillo tenía un ___ azul brillante.", distractors: ["safiro", "zafyro"],
-        blanks: [{ pos: 0, options: ["z", "s"] }, { pos: 3, options: ["i", "y"] }] },
-      { word: "seto", sentence: "El jardinero podó el ___ del jardín.", distractors: ["ceto", "zeto"],
-        blanks: [{ pos: 0, options: ["s", "c", "z"] }] },
-      { word: "pesar", sentence: "A ___ de la lluvia, fuimos al parque.", distractors: ["pezar", "pessar"],
-        blanks: [{ pos: 2, options: ["s", "z", "c"] }] },
-      { word: "traducir", sentence: "Necesito ___ este texto al inglés.", distractors: ["tradusir", "traduzir"],
-        blanks: [{ pos: 5, options: ["c", "s", "z"] }] },
-      { word: "xilófono", sentence: "Tocó una melodía alegre en el ___.", distractors: ["silófono", "xilóphono"],
-        blanks: [{ pos: 0, options: ["x", "s"] }] },
-      { word: "xerófilo", sentence: "El cactus es una planta ___a.", distractors: ["serófilo", "xerophilo"],
-        blanks: [{ pos: 0, options: ["x", "s"] }] },
-      { word: "mascota", sentence: "Mi ___ favorita es mi perro.", distractors: ["macota", "mazcota"],
-        blanks: [{ pos: 2, options: ["s", "z"] }] },
-      { word: "empezar", sentence: "Vamos a ___ la tarea ahora mismo.", distractors: ["empesar", "enpezar"],
-        blanks: [{ pos: 1, options: ["m", "n"] }, { pos: 4, options: ["z", "s", "c"] }] },
-      { word: "diez", sentence: "Tengo ___ años.", distractors: ["dies", "diex"],
-        blanks: [{ pos: 3, options: ["z", "s"] }] },
-      { word: "cerebro", sentence: "El ___ controla todo el cuerpo.", distractors: ["serebro", "cerevro"],
-        blanks: [{ pos: 0, options: ["c", "s", "z"] }, { pos: 4, options: ["b", "v"] }] },
-      { word: "país", sentence: "México es un ___ muy grande.", distractors: ["paíz", "paíc"],
-        blanks: [{ pos: 3, options: ["s", "z"] }] },
-      { word: "bostezar", sentence: "El niño empezó a ___ de sueño.", distractors: ["bostesar", "vostezar"],
-        blanks: [{ pos: 0, options: ["b", "v"] }, { pos: 5, options: ["z", "s", "c"] }] }
-    ] }
-  ],
-  en: []
-};
+// Los spellings anteriores viven en Supabase. Este arreglo queda vacío como
+// respaldo para instalaciones antiguas; así el juego no duplica los pools
+// históricos cuando los carga desde la base de datos.
+let REPASO_POOLS = { es: [], en: [] };
 
 let currentLang = 'es';
 let usingRepaso = false;
@@ -768,16 +722,16 @@ async function loadRemoteWords() {
         es: active.es.length ? active.es : WORD_BANKS.es,
         en: active.en.length ? active.en : WORD_BANKS.en
       };
-      REPASO_POOLS = {
-        es: [...(REPASO_POOLS.es || []), ...archived.es],
-        en: [...(REPASO_POOLS.en || []), ...archived.en]
-      };
       document.querySelectorAll('#langSelect button').forEach(button => {
         const action = button.getAttribute('onclick');
         if (action === "selectLanguage('es')") button.textContent = `🇪🇸 Español (${WORD_BANKS.es.length} palabras)`;
         if (action === "selectLanguage('en')") button.textContent = `🇬🇧 English (${WORD_BANKS.en.length} words)`;
       });
     }
+    REPASO_POOLS = {
+      es: archived.es.length ? [{ label: 'Spelling anteriores', words: uniqueByWord(archived.es.flatMap(pool => pool.words)) }] : [],
+      en: archived.en.length ? [{ label: 'Previous spellings', words: uniqueByWord(archived.en.flatMap(pool => pool.words)) }] : []
+    };
   } catch (error) {
     console.warn('No se pudieron cargar las palabras remotas; se usarán las listas incluidas.', error);
   } finally {
@@ -872,9 +826,8 @@ function showRepasoPoolSelect() {
   if (pools.length === 0) {
     container.innerHTML = '<p style="color:#6b4a00; font-size:14px;">Todavía no hay palabras de repaso guardadas para este idioma.</p>';
   } else {
-    container.innerHTML = pools.map((pool, i) =>
-      `<button class="main menu-btn" onclick="selectRepasoPool(${i})">${pool.label} (${pool.words.length} palabras)</button>`
-    ).join('');
+    const total = pools[0].words.length;
+    container.innerHTML = `<button class="main menu-btn" onclick="selectRepasoPool(0)">🎲 Elegir 20 al azar (${total} disponibles)</button>`;
   }
   document.getElementById('repasoPoolSelect').style.display = 'block';
   document.getElementById('backBtn').style.display = 'none';
@@ -884,6 +837,7 @@ function selectRepasoPool(i) {
   usingRepaso = true;
   repasoPoolIndex = i;
   const pool = REPASO_POOLS[currentLang][i];
+  pool.words = shuffle(pool.words).slice(0, 20);
   document.getElementById('subtitleText').textContent = `Repasando: ${pool.label} — ${pool.words.length} palabras`;
   populateVoiceSelect();
   showMenu();
