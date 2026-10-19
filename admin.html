@@ -31,7 +31,8 @@
     <div id="status" class="status">Comprobando configuración…</div>
     <div id="login" class="hidden">
       <label>Correo de acceso<input id="email" type="email" placeholder="correo@ejemplo.com"></label>
-      <div class="actions"><button class="primary" id="loginBtn">Enviar enlace de acceso</button><a class="ghost" href="bee.html">Volver al juego</a></div>
+      <label>Contraseña<input id="password" type="password" autocomplete="current-password" placeholder="Tu contraseña"></label>
+      <div class="actions"><button class="primary" id="passwordLoginBtn">Entrar con contraseña</button><button class="ghost" id="loginBtn" type="button">Enviar enlace al correo</button><a class="ghost" href="bee.html">Volver al juego</a></div>
     </div>
     <div id="app" class="hidden">
       <div class="actions"><button class="ghost" id="logoutBtn">Cerrar sesión</button><a class="ghost" href="bee.html">Abrir juego</a></div>
@@ -96,6 +97,12 @@ if (!config.url || !config.anonKey || !window.supabase) {
   client = window.supabase.createClient(config.url, config.anonKey);
   client.auth.onAuthStateChange((_event, session) => onSession(session));
   client.auth.getSession().then(({ data }) => onSession(data.session));
+  document.getElementById('passwordLoginBtn').addEventListener('click', async () => {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const { error } = await client.auth.signInWithPassword({ email, password });
+    setStatus(error ? error.message : 'Sesión iniciada.', !!error);
+  });
   document.getElementById('loginBtn').addEventListener('click', async () => {
     const email = document.getElementById('email').value.trim();
     const { error } = await client.auth.signInWithOtp({ email, options: { emailRedirectTo: `${location.origin}${location.pathname}` } });
