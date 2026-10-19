@@ -46,5 +46,6 @@ drop policy if exists "Admins can delete words" on public.words;
 create policy "Admins can delete words" on public.words
   for delete using (public.is_spelling_admin());
 
--- Después de crear el proyecto, agrega el correo autorizado desde el SQL Editor:
--- insert into public.admin_users (email) values ('correo-de-tu-esposa@ejemplo.com');
+insert into public.admin_users (email)
+values ('cmgonellt@gmail.com')
+on conflict (email) do nothing;
