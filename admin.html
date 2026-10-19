@@ -46,9 +46,11 @@
         <label>Idioma<select id="language"><option value="es">Español</option><option value="en">English</option></select></label>
         <label>Lista<select id="listName"><option value="Lista actual">Lista actual</option><option value="Spelling anterior">Spelling anterior</option></select></label>
         <label>Palabra<input id="word" required autocomplete="off"></label>
-        <label>Distractores<input id="distractors" placeholder="ej.: veber, bebber"></label>
+        <label>Distractor 1<input id="distractor1" placeholder="ej.: veber"></label>
+        <label>Distractor 2<input id="distractor2" placeholder="ej.: bebber"></label>
         <label class="full">Frase de ejemplo<textarea id="sentence" placeholder="Escribe una frase usando ___ en el lugar de la palabra"></textarea></label>
-        <label class="full">Espacios para “Completa la palabra”<textarea id="blanks" placeholder='Ejemplo: [{"pos":0,"options":["b","v"]}]'></textarea></label>
+        <label>Posición de letra a practicar<input id="blankPosition" type="number" min="1" placeholder="Ej.: 1"><small style="display:block;margin-top:5px;color:#806b43;font-weight:400">Cuenta desde 1. Déjalo vacío si no quieres practicar una letra específica.</small></label>
+        <label>Opciones de letra<input id="blankOptions" placeholder="ej.: b, v"><small style="display:block;margin-top:5px;color:#806b43;font-weight:400">Escribe las opciones separadas por coma.</small></label>
       </div>
       <div class="actions"><button class="primary" type="submit">Guardar palabra</button><button class="ghost" type="button" id="clearBtn">Limpiar</button></div>
     </form>
@@ -70,7 +72,6 @@ let client;
 let currentRows = [];
 
 function setStatus(message, error = false) { statusEl.textContent = message; statusEl.className = `status${error ? ' error' : ''}`; }
-function parseJson(value, fallback) { try { return value.trim() ? JSON.parse(value) : fallback; } catch { throw new Error('El formato de espacios debe ser JSON válido.'); } }
 function resetForm() { document.getElementById('wordForm').reset(); document.getElementById('listName').value = 'Lista actual'; }
 
 async function renderRows() {
@@ -112,8 +113,11 @@ if (!config.url || !config.anonKey || !window.supabase) {
   document.getElementById('wordForm').addEventListener('submit', async event => {
     event.preventDefault();
     try {
-      const distractors = document.getElementById('distractors').value.split(',').map(v => v.trim()).filter(Boolean);
-      const blanks = parseJson(document.getElementById('blanks').value, []);
+      const distractors = ['distractor1', 'distractor2'].map(id => document.getElementById(id).value.trim()).filter(Boolean);
+      const position = Number(document.getElementById('blankPosition').value);
+      const options = document.getElementById('blankOptions').value.split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
+      const blanks = position > 0 && options.length > 1 ? [{ pos: position - 1, options }] : [];
+      if (position > 0 && options.length < 2) throw new Error('Agrega al menos dos opciones de letra, por ejemplo: b, v.');
       const row = { language: document.getElementById('language').value, list_name: document.getElementById('listName').value, word: document.getElementById('word').value.trim(), sentence: document.getElementById('sentence').value.trim(), distractors, blanks, is_active: document.getElementById('listName').value === 'Lista actual' };
       const { error } = await client.from('words').insert(row);
       if (error) throw error;
