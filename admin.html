@@ -6,137 +6,63 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <script>
-    (function () {
-      var version = '20261019-4';
-      if (location.search.indexOf('v=') === -1) {
-        location.replace(location.pathname + '?v=' + version + location.hash);
-      }
-    })();
-  </script>
+  <script>(function(){var v='20261019-5';if(location.search.indexOf('v=')===-1)location.replace(location.pathname+'?v='+v+location.hash);})();</script>
   <title>Panel de palabras · Spelling Bee</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <style>
-    :root { --ink:#45320d; --gold:#d4820a; --cream:#fffef8; --line:#f0d090; --teal:#2a9d8f; }
-    * { box-sizing:border-box; }
-    body { margin:0; min-height:100vh; font-family:system-ui,sans-serif; color:var(--ink); background:linear-gradient(135deg,#fff3c4,#ffd166 45%,#f4a261); padding:24px; }
-    main { max-width:980px; margin:auto; }
-    .card { background:var(--cream); border-radius:22px; padding:28px; box-shadow:0 12px 30px #0002; margin-bottom:20px; }
-    h1 { margin:0 0 6px; color:var(--gold); } h2 { color:#8a5a00; margin-top:0; }
-    .muted { color:#806b43; } .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
-    label { display:block; font-weight:700; font-size:14px; color:#6b4a00; } input,select,textarea { width:100%; margin-top:6px; padding:12px; border:2px solid var(--line); border-radius:10px; font:inherit; background:#fffdf5; }
-    textarea { min-height:90px; resize:vertical; } .full { grid-column:1/-1; }
-    button { border:0; border-radius:10px; padding:12px 16px; font-weight:700; cursor:pointer; } .primary { background:var(--teal); color:white; } .secondary { background:#e76f51; color:white; } .ghost { background:white; border:1px solid #c9b78e; color:#6b4a00; }
-    .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; } .hidden { display:none; }
-    table { width:100%; border-collapse:collapse; } th,td { text-align:left; padding:10px 8px; border-bottom:1px solid #f0e0b0; vertical-align:top; } th { color:#8a5a00; } td small { color:#806b43; }
-    .status { padding:12px; border-radius:10px; background:#fff7e6; margin-bottom:16px; } .error { color:#b33a20; }
-    @media (max-width:700px) { body { padding:12px; } .card { padding:18px; } .grid { grid-template-columns:1fr; } .full { grid-column:auto; } table { font-size:13px; } }
+    :root{--ink:#45320d;--gold:#d4820a;--cream:#fffef8;--line:#f0d090;--teal:#2a9d8f;--red:#e76f51}
+    *{box-sizing:border-box} body{margin:0;min-height:100vh;font-family:system-ui,sans-serif;color:var(--ink);background:linear-gradient(135deg,#fff3c4,#ffd166 45%,#f4a261);padding:20px}
+    main{max-width:1200px;margin:auto}.card{background:var(--cream);border-radius:22px;padding:24px;box-shadow:0 12px 30px #0002;margin-bottom:18px}
+    h1{margin:0 0 6px;color:var(--gold)}h2{color:#8a5a00;margin:0 0 12px}.muted{color:#806b43}.hidden{display:none!important}
+    label{display:block;font-weight:700;font-size:14px;color:#6b4a00}input,select,textarea{width:100%;margin-top:5px;padding:10px;border:2px solid var(--line);border-radius:9px;font:inherit;background:#fffdf5}textarea{min-height:74px;resize:vertical}
+    button{border:0;border-radius:10px;padding:11px 15px;font-weight:700;cursor:pointer}.primary{background:var(--teal);color:#fff}.danger{background:var(--red);color:#fff}.ghost{background:#fff;border:1px solid #c9b78e;color:#6b4a00}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .status{padding:12px;border-radius:10px;background:#fff7e6;margin-bottom:14px}.error{color:#b33a20}.table-wrap{overflow-x:auto}table{width:100%;min-width:1000px;border-collapse:separate;border-spacing:0 8px}th{text-align:left;color:#8a5a00;font-size:13px;padding:0 7px}td{background:#fffdf5;padding:7px;vertical-align:top}td:first-child{border-radius:9px 0 0 9px;text-align:center;font-weight:700;color:#b89658}td:last-child{border-radius:0 9px 9px 0}td input,td textarea{min-width:110px}td textarea{min-width:190px}.hint{font-size:12px;color:#806b43;font-weight:400;margin:0 0 12px}.summary{display:flex;gap:12px;flex-wrap:wrap}.pill{background:#fff7e6;border-radius:12px;padding:10px 14px;font-weight:700}.archive-list{margin:0;padding-left:20px}.archive-list li{margin:6px 0}
+    @media(max-width:700px){body{padding:10px}.card{padding:17px}h1{font-size:26px}}
   </style>
 </head>
 <body>
 <main>
   <section class="card">
     <h1>Panel de palabras 🐝</h1>
-    <p class="muted">Administra las listas de inglés y español que aparecen en el juego.</p>
+    <p class="muted">Aquí se prepara el spelling semanal de 20 palabras.</p>
     <div id="status" class="status">Comprobando configuración…</div>
     <div id="login" class="hidden">
       <label>Correo de acceso<input id="email" type="email" placeholder="correo@ejemplo.com"></label>
-      <label>Contraseña<input id="password" type="password" autocomplete="current-password" placeholder="Tu contraseña"></label>
-      <div class="actions"><button class="primary" id="passwordLoginBtn">Entrar con contraseña</button><button class="ghost" id="loginBtn" type="button">Enviar enlace al correo</button><a class="ghost" href="bee.html">Volver al juego</a></div>
+      <label style="margin-top:10px">Contraseña<input id="password" type="password" autocomplete="current-password" placeholder="Tu contraseña"></label>
+      <div class="actions"><button class="primary" id="passwordLoginBtn">Entrar con contraseña</button><button class="ghost" id="magicLoginBtn" type="button">Enviar enlace al correo</button><a class="ghost" href="bee.html">Volver al juego</a></div>
     </div>
-    <div id="app" class="hidden">
-      <div class="actions"><button class="ghost" id="logoutBtn">Cerrar sesión</button><a class="ghost" href="bee.html">Abrir juego</a></div>
-    </div>
+    <div id="app" class="hidden"><div class="actions"><button class="ghost" id="logoutBtn">Cerrar sesión</button><a class="ghost" href="bee.html">Abrir juego</a></div></div>
   </section>
 
-  <section id="formCard" class="card hidden">
-    <h2>Agregar palabra</h2>
-    <form id="wordForm">
-      <div class="grid">
-        <label>Idioma<select id="language"><option value="es">Español</option><option value="en">English</option></select></label>
-        <label>Lista<select id="listName"><option value="Lista actual">Lista actual</option><option value="Spelling anterior">Spelling anterior</option></select></label>
-        <label>Palabra<input id="word" required autocomplete="off"></label>
-        <label>Distractor 1<input id="distractor1" placeholder="ej.: veber"></label>
-        <label>Distractor 2<input id="distractor2" placeholder="ej.: bebber"></label>
-        <label class="full">Frase de ejemplo<textarea id="sentence" placeholder="Escribe una frase usando ___ en el lugar de la palabra"></textarea></label>
-        <label>Posición de letra a practicar<input id="blankPosition" type="number" min="1" placeholder="Ej.: 1"><small style="display:block;margin-top:5px;color:#806b43;font-weight:400">Cuenta desde 1. Déjalo vacío si no quieres practicar una letra específica.</small></label>
-        <label>Opciones de letra<input id="blankOptions" placeholder="ej.: b, v"><small style="display:block;margin-top:5px;color:#806b43;font-weight:400">Escribe las opciones separadas por coma.</small></label>
-      </div>
-      <div class="actions"><button class="primary" type="submit">Guardar palabra</button><button class="ghost" type="button" id="clearBtn">Limpiar</button></div>
-    </form>
-  </section>
+  <section id="panel" class="hidden">
+    <section class="card">
+      <h2>Spelling actual</h2>
+      <p class="hint">Escribe las 20 palabras. La posición se cuenta desde 1. Las opciones pueden ser, por ejemplo, <b>b, v</b>.</p>
+      <label style="max-width:260px">Idioma<select id="language"><option value="es">🇪🇸 Español</option><option value="en">🇬🇧 English</option></select></label>
+      <div class="summary"><div class="pill" id="currentCount">0 de 20 palabras</div><div class="pill" id="archiveCount">0 spellings anteriores</div></div>
+      <div class="table-wrap"><form id="batchForm"><table><thead><tr><th>#</th><th>Palabra</th><th>Frase</th><th>Distractor 1</th><th>Distractor 2</th><th>Posición</th><th>Opciones</th></tr></thead><tbody id="wordRows"></tbody></table><div class="actions"><button class="primary" type="submit">Guardar las 20 palabras</button><button class="danger" type="button" id="archiveBtn">Archivar spelling actual</button><button class="ghost" type="button" id="clearBatchBtn">Limpiar formulario</button></div></form></div>
+    </section>
 
-  <section id="listCard" class="card hidden">
-    <h2>Palabras guardadas</h2>
-    <div id="tableWrap"></div>
+    <section class="card">
+      <h2>Spellings anteriores</h2>
+      <p class="hint">Cuando archives el spelling actual, aparecerá aquí para poder repasarlo desde el juego.</p>
+      <div id="archiveList" class="muted">Todavía no hay spellings archivados.</div>
+    </section>
   </section>
 </main>
 <script>
-const config = window.SPELLING_SUPABASE || {};
-const statusEl = document.getElementById('status');
-const loginEl = document.getElementById('login');
-const appEl = document.getElementById('app');
-const formCard = document.getElementById('formCard');
-const listCard = document.getElementById('listCard');
-let client;
-let currentRows = [];
-
-function setStatus(message, error = false) { statusEl.textContent = message; statusEl.className = `status${error ? ' error' : ''}`; }
-function resetForm() { document.getElementById('wordForm').reset(); document.getElementById('listName').value = 'Lista actual'; }
-
-async function renderRows() {
-  const { data, error } = await client.from('words').select('*').order('created_at', { ascending: false });
-  if (error) return setStatus(error.message, true);
-  currentRows = data || [];
-  document.getElementById('tableWrap').innerHTML = currentRows.length ? `<table><thead><tr><th>Idioma</th><th>Palabra</th><th>Lista</th><th>Estado</th><th></th></tr></thead><tbody>${currentRows.map(row => `<tr><td>${row.language === 'es' ? '🇪🇸' : '🇬🇧'}</td><td><strong>${row.word}</strong><br><small>${row.sentence || ''}</small></td><td>${row.list_name}</td><td>${row.is_active ? 'Activa' : 'Archivada'}</td><td><button class="secondary" data-delete="${row.id}">Eliminar</button></td></tr>`).join('')}</tbody></table>` : '<p class="muted">Todavía no hay palabras administradas desde el panel.</p>';
-  document.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', async () => {
-    if (!confirm('¿Eliminar esta palabra?')) return;
-    const { error: deleteError } = await client.from('words').delete().eq('id', btn.dataset.delete);
-    if (deleteError) setStatus(deleteError.message, true); else renderRows();
-  }));
-}
-
-async function onSession(session) {
-  if (!session) { loginEl.classList.remove('hidden'); appEl.classList.add('hidden'); formCard.classList.add('hidden'); listCard.classList.add('hidden'); setStatus('Inicia sesión con el correo autorizado.'); return; }
-  loginEl.classList.add('hidden'); appEl.classList.remove('hidden'); formCard.classList.remove('hidden'); listCard.classList.remove('hidden'); setStatus(`Sesión iniciada como ${session.user.email}.`); await renderRows();
-}
-
-if (!config.url || !config.anonKey || !window.supabase) {
-  setStatus('Falta configurar Supabase. Completa supabase-config.js y ejecuta supabase-schema.sql.', true);
-  loginEl.classList.remove('hidden');
-} else {
-  client = window.supabase.createClient(config.url, config.anonKey);
-  client.auth.onAuthStateChange((_event, session) => onSession(session));
-  client.auth.getSession().then(({ data }) => onSession(data.session));
-  document.getElementById('passwordLoginBtn').addEventListener('click', async () => {
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    const { error } = await client.auth.signInWithPassword({ email, password });
-    setStatus(error ? error.message : 'Sesión iniciada.', !!error);
-  });
-  document.getElementById('loginBtn').addEventListener('click', async () => {
-    const email = document.getElementById('email').value.trim();
-    const { error } = await client.auth.signInWithOtp({ email, options: { emailRedirectTo: `${location.origin}${location.pathname}` } });
-    setStatus(error ? error.message : 'Revisa el correo y abre el enlace de acceso.', !!error);
-  });
-  document.getElementById('logoutBtn').addEventListener('click', () => client.auth.signOut());
-  document.getElementById('wordForm').addEventListener('submit', async event => {
-    event.preventDefault();
-    try {
-      const distractors = ['distractor1', 'distractor2'].map(id => document.getElementById(id).value.trim()).filter(Boolean);
-      const position = Number(document.getElementById('blankPosition').value);
-      const options = document.getElementById('blankOptions').value.split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
-      const blanks = position > 0 && options.length > 1 ? [{ pos: position - 1, options }] : [];
-      if (position > 0 && options.length < 2) throw new Error('Agrega al menos dos opciones de letra, por ejemplo: b, v.');
-      const row = { language: document.getElementById('language').value, list_name: document.getElementById('listName').value, word: document.getElementById('word').value.trim(), sentence: document.getElementById('sentence').value.trim(), distractors, blanks, is_active: document.getElementById('listName').value === 'Lista actual' };
-      const { error } = await client.from('words').insert(row);
-      if (error) throw error;
-      setStatus('Palabra guardada correctamente.'); resetForm(); renderRows();
-    } catch (error) { setStatus(error.message, true); }
-  });
-  document.getElementById('clearBtn').addEventListener('click', resetForm);
-}
+const config=window.SPELLING_SUPABASE||{};
+const statusEl=document.getElementById('status'),loginEl=document.getElementById('login'),appEl=document.getElementById('app'),panelEl=document.getElementById('panel');
+let client,allRows=[];
+function status(message,error=false){statusEl.textContent=message;statusEl.className='status'+(error?' error':'')}
+function emptyRow(i,row={}){return `<tr><td>${i+1}</td><td><input required data-field="word" value="${escapeAttr(row.word||'')}"></td><td><textarea data-field="sentence" placeholder="Frase usando ___">${escapeHtml(row.sentence||'')}</textarea></td><td><input data-field="d1" value="${escapeAttr((row.distractors||[])[0]||'')}"></td><td><input data-field="d2" value="${escapeAttr((row.distractors||[])[1]||'')}"></td><td><input data-field="pos" type="number" min="1" placeholder="1" value="${row.blanks?.[0]?.pos!=null?row.blanks[0].pos+1:''}"></td><td><input data-field="opts" placeholder="b, v" value="${escapeAttr((row.blanks?.[0]?.options||[]).join(', '))}"></td></tr>`}
+function escapeHtml(v){return String(v).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}function escapeAttr(v){return escapeHtml(v).replace(/"/g,'&quot;')}
+function renderForm(rows=[]){document.getElementById('wordRows').innerHTML=Array.from({length:20},(_,i)=>emptyRow(i,rows[i]||{})).join('');document.getElementById('currentCount').textContent=`${rows.length} de 20 palabras`}
+function rowFromTr(tr){const get=name=>tr.querySelector(`[data-field="${name}"]`).value.trim();const word=get('word'),pos=Number(get('pos')),opts=get('opts').split(',').map(v=>v.trim().toLowerCase()).filter(Boolean);return{word,sentence:get('sentence'),distractors:[get('d1'),get('d2')].filter(Boolean),blanks:pos>0&&opts.length>1?[{pos:pos-1,options:opts}]:[]}}
+async function loadRows(){const {data,error}=await client.from('words').select('*').order('created_at',{ascending:true});if(error)return status(error.message,true);allRows=data||[];const active=allRows.filter(r=>r.is_active&&r.list_name==='Lista actual');renderForm(active);const archives=allRows.filter(r=>!r.is_active);const groups={};archives.forEach(r=>(groups[r.list_name]??=[]).push(r));document.getElementById('archiveCount').textContent=`${Object.keys(groups).length} spellings anteriores`;document.getElementById('archiveList').innerHTML=Object.keys(groups).length?'<ul class="archive-list">'+Object.entries(groups).map(([name,rows])=>`<li><b>${escapeHtml(name)}</b> — ${rows.length} palabras</li>`).join('')+'</ul>':'Todavía no hay spellings archivados.'}
+async function session(s){if(!s){loginEl.classList.remove('hidden');appEl.classList.add('hidden');panelEl.classList.add('hidden');status('Inicia sesión con el correo autorizado.');return}loginEl.classList.add('hidden');appEl.classList.remove('hidden');panelEl.classList.remove('hidden');status(`Sesión iniciada como ${s.user.email}.`);await loadRows()}
+if(!config.url||!config.anonKey||!window.supabase){status('Falta configurar Supabase.',true);loginEl.classList.remove('hidden')}else{client=window.supabase.createClient(config.url,config.anonKey);client.auth.onAuthStateChange((_e,s)=>session(s));client.auth.getSession().then(({data})=>session(data.session));document.getElementById('passwordLoginBtn').onclick=async()=>{const{error}=await client.auth.signInWithPassword({email:document.getElementById('email').value.trim(),password:document.getElementById('password').value});status(error?error.message:'Sesión iniciada.',!!error)};document.getElementById('magicLoginBtn').onclick=async()=>{const{error}=await client.auth.signInWithOtp({email:document.getElementById('email').value.trim(),options:{emailRedirectTo:location.href}});status(error?error.message:'Revisa tu correo.',!!error)};document.getElementById('logoutBtn').onclick=()=>client.auth.signOut();document.getElementById('batchForm').onsubmit=async e=>{e.preventDefault();const rows=[...document.querySelectorAll('#wordRows tr')].map(rowFromTr);if(rows.some(r=>!r.word))return status('Completa las 20 palabras antes de guardar.',true);if(rows.some(r=>r.blanks.length===0)){const ok=confirm('Hay palabras sin posición y opciones de letra. ¿Quieres guardarlas de todas formas?');if(!ok)return}const active=allRows.filter(r=>r.is_active&&r.list_name==='Lista actual'&&r.language===document.getElementById('language').value);if(active.length&&!confirm('Ya existe un spelling actual. ¿Quieres reemplazarlo? El spelling anterior se conservará.'))return;if(active.length){const name=`Spelling anterior ${new Date().toLocaleDateString('es-DO')}`;const{error}=await client.from('words').update({is_active:false,list_name:name}).eq('is_active',true).eq('list_name','Lista actual').eq('language',document.getElementById('language').value);if(error)return status(error.message,true)}const payload=rows.map(r=>({...r,language:document.getElementById('language').value,list_name:'Lista actual',is_active:true}));const{error}=await client.from('words').insert(payload);if(error)return status(error.message,true);status('Las 20 palabras fueron guardadas.');await loadRows()};document.getElementById('archiveBtn').onclick=async()=>{const active=allRows.filter(r=>r.is_active&&r.list_name==='Lista actual'&&r.language===document.getElementById('language').value);if(!active.length)return status('No hay un spelling actual para archivar.',true);if(!confirm('¿Pasar el spelling actual a spellings anteriores?'))return;const name=`Spelling anterior ${new Date().toLocaleDateString('es-DO')}`;const{error}=await client.from('words').update({is_active:false,list_name:name}).eq('is_active',true).eq('list_name','Lista actual').eq('language',document.getElementById('language').value);if(error)return status(error.message,true);status('Spelling archivado correctamente.');await loadRows()};document.getElementById('clearBatchBtn').onclick=()=>renderForm([]);document.getElementById('language').onchange=loadRows}
 </script>
 </body>
 </html>
