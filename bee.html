@@ -6,6 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script>
   // Evita que el navegador (o el de la tablet) sirva una versión vieja en
   // caché cuando actualizamos este archivo en el servidor. Cada carga se
@@ -579,7 +581,7 @@
 // Las 20 palabras originales de la lista. Los blancos/opciones de los
 // minijuegos evitan probar acentos: solo ponen a prueba x, c, s, z (y
 // algún otro par de letras que se confunden al oído), nunca dónde va la tilde.
-const WORD_BANKS = {
+let WORD_BANKS = {
   es: [
   { word: "beber", sentence: "Es importante ___ suficiente agua cada día.", distractors: ["veber", "bebber"],
     blanks: [{ pos: 0, options: ["b", "v"] }, { pos: 2, options: ["b", "v"] }] },
@@ -669,7 +671,7 @@ const WORD_BANKS = {
 // Cada vez que se reemplaza la lista activa de un idioma, la lista vieja se
 // archiva aquí como un "pool" más de repaso — así se van acumulando todas
 // las listas de spelling bee pasadas, sin perder ninguna.
-const REPASO_POOLS = {
+let REPASO_POOLS = {
   es: [
     { label: "Palabras con S, C, Z, X", words: [
       { word: "cazo", sentence: "Mi abuela cocina la sopa en un ___ de metal.", distractors: ["caso", "casso"],
@@ -720,6 +722,70 @@ const REPASO_POOLS = {
 let currentLang = 'es';
 let usingRepaso = false;
 let repasoPoolIndex = null; // índice dentro de REPASO_POOLS[currentLang]
+let remoteWordsReady = false;
+
+function normalizeRemoteWord(row) {
+  return {
+    id: row.id,
+    word: row.word,
+    sentence: row.sentence || `Escribe la palabra: ${row.word}`,
+    distractors: Array.isArray(row.distractors) ? row.distractors : [],
+    blanks: Array.isArray(row.blanks) ? row.blanks : []
+  };
+}
+
+async function loadRemoteWords() {
+  const config = window.SPELLING_SUPABASE || {};
+  if (!config.url || !config.anonKey || !window.supabase) {
+    remoteWordsReady = true;
+    return;
+  }
+
+  try {
+    const client = window.supabase.createClient(config.url, config.anonKey);
+    const { data, error } = await client
+      .from('words')
+      .select('id, language, word, sentence, distractors, blanks, list_name, is_active')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+
+    const active = { es: [], en: [] };
+    const archived = { es: [], en: [] };
+    (data || []).forEach(row => {
+      const word = normalizeRemoteWord(row);
+      if (!active[row.language]) return;
+      if (row.is_active) {
+        active[row.language].push(word);
+      } else if (row.list_name) {
+        const existing = archived[row.language].find(pool => pool.label === row.list_name);
+        if (existing) existing.words.push(word);
+        else archived[row.language].push({ label: row.list_name, words: [word] });
+      }
+    });
+
+    if (active.es.length || active.en.length) {
+      WORD_BANKS = {
+        es: active.es.length ? active.es : WORD_BANKS.es,
+        en: active.en.length ? active.en : WORD_BANKS.en
+      };
+      REPASO_POOLS = {
+        es: [...(REPASO_POOLS.es || []), ...archived.es],
+        en: [...(REPASO_POOLS.en || []), ...archived.en]
+      };
+      document.querySelectorAll('#langSelect button').forEach(button => {
+        const action = button.getAttribute('onclick');
+        if (action === "selectLanguage('es')") button.textContent = `🇪🇸 Español (${WORD_BANKS.es.length} palabras)`;
+        if (action === "selectLanguage('en')") button.textContent = `🇬🇧 English (${WORD_BANKS.en.length} words)`;
+      });
+    }
+  } catch (error) {
+    console.warn('No se pudieron cargar las palabras remotas; se usarán las listas incluidas.', error);
+  } finally {
+    remoteWordsReady = true;
+  }
+}
+
+loadRemoteWords();
 
 function activeWords() {
   if (usingRepaso && repasoPoolIndex !== null) {
