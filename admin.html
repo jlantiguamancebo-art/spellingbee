@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panel de palabras · Spelling Bee</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <style>
+    :root { --ink:#45320d; --gold:#d4820a; --cream:#fffef8; --line:#f0d090; --teal:#2a9d8f; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; font-family:system-ui,sans-serif; color:var(--ink); background:linear-gradient(135deg,#fff3c4,#ffd166 45%,#f4a261); padding:24px; }
+    main { max-width:980px; margin:auto; }
+    .card { background:var(--cream); border-radius:22px; padding:28px; box-shadow:0 12px 30px #0002; margin-bottom:20px; }
+    h1 { margin:0 0 6px; color:var(--gold); } h2 { color:#8a5a00; margin-top:0; }
+    .muted { color:#806b43; } .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    label { display:block; font-weight:700; font-size:14px; color:#6b4a00; } input,select,textarea { width:100%; margin-top:6px; padding:12px; border:2px solid var(--line); border-radius:10px; font:inherit; background:#fffdf5; }
+    textarea { min-height:90px; resize:vertical; } .full { grid-column:1/-1; }
+    button { border:0; border-radius:10px; padding:12px 16px; font-weight:700; cursor:pointer; } .primary { background:var(--teal); color:white; } .secondary { background:#e76f51; color:white; } .ghost { background:white; border:1px solid #c9b78e; color:#6b4a00; }
+    .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; } .hidden { display:none; }
+    table { width:100%; border-collapse:collapse; } th,td { text-align:left; padding:10px 8px; border-bottom:1px solid #f0e0b0; vertical-align:top; } th { color:#8a5a00; } td small { color:#806b43; }
+    .status { padding:12px; border-radius:10px; background:#fff7e6; margin-bottom:16px; } .error { color:#b33a20; }
+    @media (max-width:700px) { body { padding:12px; } .card { padding:18px; } .grid { grid-template-columns:1fr; } .full { grid-column:auto; } table { font-size:13px; } }
+  </style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <h1>Panel de palabras 🐝</h1>
+    <p class="muted">Administra las listas de inglés y español que aparecen en el juego.</p>
+    <div id="status" class="status">Comprobando configuración…</div>
+    <div id="login" class="hidden">
+      <label>Correo de acceso<input id="email" type="email" placeholder="correo@ejemplo.com"></label>
+      <div class="actions"><button class="primary" id="loginBtn">Enviar enlace de acceso</button><a class="ghost" href="bee.html">Volver al juego</a></div>
+    </div>
+    <div id="app" class="hidden">
+      <div class="actions"><button class="ghost" id="logoutBtn">Cerrar sesión</button><a class="ghost" href="bee.html">Abrir juego</a></div>
+    </div>
+  </section>
+
+  <section id="formCard" class="card hidden">
+    <h2>Agregar palabra</h2>
+    <form id="wordForm">
+      <div class="grid">
+        <label>Idioma<select id="language"><option value="es">Español</option><option value="en">English</option></select></label>
+        <label>Lista<select id="listName"><option value="Lista actual">Lista actual</option><option value="Spelling anterior">Spelling anterior</option></select></label>
+        <label>Palabra<input id="word" required autocomplete="off"></label>
+        <label>Distractores<input id="distractors" placeholder="ej.: veber, bebber"></label>
+        <label class="full">Frase de ejemplo<textarea id="sentence" placeholder="Escribe una frase usando ___ en el lugar de la palabra"></textarea></label>
+        <label class="full">Espacios para “Completa la palabra”<textarea id="blanks" placeholder='Ejemplo: [{"pos":0,"options":["b","v"]}]'></textarea></label>
+      </div>
+      <div class="actions"><button class="primary" type="submit">Guardar palabra</button><button class="ghost" type="button" id="clearBtn">Limpiar</button></div>
+    </form>
+  </section>
+
+  <section id="listCard" class="card hidden">
+    <h2>Palabras guardadas</h2>
+    <div id="tableWrap"></div>
+  </section>
+</main>
+<script>
+const config = window.SPELLING_SUPABASE || {};
+const statusEl = document.getElementById('status');
+const loginEl = document.getElementById('login');
+const appEl = document.getElementById('app');
+const formCard = document.getElementById('formCard');
+const listCard = document.getElementById('listCard');
+let client;
+let currentRows = [];
+
+function setStatus(message, error = false) { statusEl.textContent = message; statusEl.className = `status${error ? ' error' : ''}`; }
+function parseJson(value, fallback) { try { return value.trim() ? JSON.parse(value) : fallback; } catch { throw new Error('El formato de espacios debe ser JSON válido.'); } }
+function resetForm() { document.getElementById('wordForm').reset(); document.getElementById('listName').value = 'Lista actual'; }
+
+async function renderRows() {
+  const { data, error } = await client.from('words').select('*').order('created_at', { ascending: false });
+  if (error) return setStatus(error.message, true);
+  currentRows = data || [];
+  document.getElementById('tableWrap').innerHTML = currentRows.length ? `<table><thead><tr><th>Idioma</th><th>Palabra</th><th>Lista</th><th>Estado</th><th></th></tr></thead><tbody>${currentRows.map(row => `<tr><td>${row.language === 'es' ? '🇪🇸' : '🇬🇧'}</td><td><strong>${row.word}</strong><br><small>${row.sentence || ''}</small></td><td>${row.list_name}</td><td>${row.is_active ? 'Activa' : 'Archivada'}</td><td><button class="secondary" data-delete="${row.id}">Eliminar</button></td></tr>`).join('')}</tbody></table>` : '<p class="muted">Todavía no hay palabras administradas desde el panel.</p>';
+  document.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('¿Eliminar esta palabra?')) return;
+    const { error: deleteError } = await client.from('words').delete().eq('id', btn.dataset.delete);
+    if (deleteError) setStatus(deleteError.message, true); else renderRows();
+  }));
+}
+
+async function onSession(session) {
+  if (!session) { loginEl.classList.remove('hidden'); appEl.classList.add('hidden'); formCard.classList.add('hidden'); listCard.classList.add('hidden'); setStatus('Inicia sesión con el correo autorizado.'); return; }
+  loginEl.classList.add('hidden'); appEl.classList.remove('hidden'); formCard.classList.remove('hidden'); listCard.classList.remove('hidden'); setStatus(`Sesión iniciada como ${session.user.email}.`); await renderRows();
+}
+
+if (!config.url || !config.anonKey || !window.supabase) {
+  setStatus('Falta configurar Supabase. Completa supabase-config.js y ejecuta supabase-schema.sql.', true);
+  loginEl.classList.remove('hidden');
+} else {
+  client = window.supabase.createClient(config.url, config.anonKey);
+  client.auth.onAuthStateChange((_event, session) => onSession(session));
+  client.auth.getSession().then(({ data }) => onSession(data.session));
+  document.getElementById('loginBtn').addEventListener('click', async () => {
+    const email = document.getElementById('email').value.trim();
+    const { error } = await client.auth.signInWithOtp({ email, options: { emailRedirectTo: `${location.origin}${location.pathname}` } });
+    setStatus(error ? error.message : 'Revisa el correo y abre el enlace de acceso.', !!error);
+  });
+  document.getElementById('logoutBtn').addEventListener('click', () => client.auth.signOut());
+  document.getElementById('wordForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      const distractors = document.getElementById('distractors').value.split(',').map(v => v.trim()).filter(Boolean);
+      const blanks = parseJson(document.getElementById('blanks').value, []);
+      const row = { language: document.getElementById('language').value, list_name: document.getElementById('listName').value, word: document.getElementById('word').value.trim(), sentence: document.getElementById('sentence').value.trim(), distractors, blanks, is_active: document.getElementById('listName').value === 'Lista actual' };
+      const { error } = await client.from('words').insert(row);
+      if (error) throw error;
+      setStatus('Palabra guardada correctamente.'); resetForm(); renderRows();
+    } catch (error) { setStatus(error.message, true); }
+  });
+  document.getElementById('clearBtn').addEventListener('click', resetForm);
+}
+</script>
+</body>
+</html>
