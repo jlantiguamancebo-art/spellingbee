@@ -1461,8 +1461,9 @@ function renderFillWord() {
   const chars = [...current.word];
 
   const wordHtml = chars.map((ch, i) => {
-    const blank = current.blanks.find(b => b.pos === i);
+    const blank = current.blanks.find(b => i >= b.pos && i < b.pos + (b.length || 1));
     if (!blank) return `<span class="fill-letter">${ch}</span>`;
+    if (i !== blank.pos) return '';
     const chosen = fillSelections[i];
     let cls = 'fill-slot';
     if (fillLocked) {
@@ -1470,7 +1471,7 @@ function renderFillWord() {
     } else if (chosen) {
       cls += ' filled';
     }
-    return `<span class="${cls}">${chosen || '_'}</span>`;
+    return `<span class="${cls}">${chosen || '_'.repeat(blank.length || 1)}</span>`;
   }).join('');
   document.getElementById('fillWordDisplay').innerHTML = wordHtml;
 
@@ -1511,7 +1512,7 @@ function checkFill() {
   }
 
   fillLocked = true;
-  const allCorrect = current.blanks.every(b => fillSelections[b.pos] === current.word[b.pos]);
+  const allCorrect = current.blanks.every(b => fillSelections[b.pos] === current.word.slice(b.pos, b.pos + (b.length || 1)));
   if (allCorrect) {
     fillCorrectCount++;
     feedback.textContent = '¡Correcto! ✅';
